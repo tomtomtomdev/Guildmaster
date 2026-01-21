@@ -138,7 +138,10 @@ class GuildManager: ObservableObject {
         stats.totalQuestsCompleted += 1
         stats.totalEnemiesKilled += quest.enemiesKilled
 
-        // TODO: Award items
+        // Award items
+        if !quest.rewards.itemIds.isEmpty {
+            ItemManager.shared.addItems(templateIds: quest.rewards.itemIds)
+        }
     }
 
     private func handleQuestFailed(_ quest: Quest) {

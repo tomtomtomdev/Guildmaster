@@ -112,7 +112,8 @@ struct SecondaryStats: Codable {
         from stats: StatBlock,
         characterClass: CharacterClass,
         race: Race,
-        level: Int
+        level: Int,
+        equipment: CharacterEquipment? = nil
     ) -> SecondaryStats {
         let conMod = StatBlock.modifier(for: stats.con)
         let dexMod = StatBlock.modifier(for: stats.dex)
@@ -135,8 +136,28 @@ struct SecondaryStats: Codable {
         var movementSpeed = race.baseMovementSpeed
         if stats.dex >= 15 { movementSpeed += 1 }
 
-        // Base AC + DEX modifier
-        let armorClass = characterClass.baseArmorClass + dexMod
+        // Base AC + DEX modifier + armor bonus
+        var armorClass = characterClass.baseArmorClass + dexMod
+
+        // Add equipment bonuses
+        if let equipment = equipment {
+            // Body armor
+            if let armor = equipment.body {
+                armorClass += armor.data.armorBonus
+
+                // Apply DEX cap for medium/heavy armor
+                if let armorType = armor.data.armorType, let dexCap = armorType.dexCapModifier {
+                    let cappedDexMod = min(dexMod, dexCap)
+                    // Recalculate AC with capped DEX
+                    armorClass = characterClass.baseArmorClass + cappedDexMod + armor.data.armorBonus
+                }
+            }
+
+            // Shield bonus
+            if let shield = equipment.offHand, shield.data.armorType == .shield {
+                armorClass += shield.data.armorBonus
+            }
+        }
 
         return SecondaryStats(
             hp: maxHP,

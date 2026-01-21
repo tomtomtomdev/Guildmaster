@@ -54,6 +54,9 @@ struct ContentView: View {
             TestCombatView(onExit: {
                 currentScreen = .mainMenu
             })
+
+        case .inventory:
+            InventoryView(currentScreen: $currentScreen)
         }
     }
 
@@ -74,6 +77,7 @@ enum GameScreen {
     case barracks
     case recruitment
     case testCombat
+    case inventory
 }
 
 /// Main menu view

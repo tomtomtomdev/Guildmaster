@@ -15,6 +15,13 @@ struct QuestResultView: View {
     let stats: CombatStatistics
     @Binding var currentScreen: GameScreen
 
+    /// Convert item IDs to display names
+    private var itemNames: [String] {
+        quest.rewards.itemIds.compactMap { itemId in
+            ItemTemplate(rawValue: itemId)?.displayName
+        }
+    }
+
     var body: some View {
         ZStack {
             // Background
@@ -192,7 +199,23 @@ struct QuestResultView: View {
                     }
                 }
             }
-            .frame(maxWidth: .infinity)
+
+            // Item list
+            if !quest.rewards.itemIds.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(itemNames, id: \.self) { name in
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                                .font(.caption)
+                            Text(name)
+                                .font(.caption)
+                                .foregroundColor(.white)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .padding()
         .background(Color.green.opacity(0.1))

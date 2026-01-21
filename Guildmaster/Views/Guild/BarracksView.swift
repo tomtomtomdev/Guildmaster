@@ -387,6 +387,7 @@ struct CharacterDetailSheet: View {
     let onRest: () -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @State private var showingEquipment = false
 
     var body: some View {
         NavigationView {
@@ -398,6 +399,9 @@ struct CharacterDetailSheet: View {
                     VStack(spacing: 20) {
                         // Portrait and basic info
                         characterHeader
+
+                        // Equipment section
+                        equipmentSection
 
                         // Stats
                         statsSection
@@ -422,6 +426,47 @@ struct CharacterDetailSheet: View {
                 }
             }
         }
+        .sheet(isPresented: $showingEquipment) {
+            CharacterEquipmentView(character: character)
+        }
+    }
+
+    private var equipmentSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Equipment")
+                    .font(.headline)
+                    .foregroundColor(.white)
+
+                Spacer()
+
+                Button(action: { showingEquipment = true }) {
+                    Text("Manage")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                }
+            }
+
+            HStack(spacing: 16) {
+                EquipmentSlotPreview(
+                    label: "Weapon",
+                    item: character.equipment.mainHand
+                )
+
+                EquipmentSlotPreview(
+                    label: "Off-Hand",
+                    item: character.equipment.offHand
+                )
+
+                EquipmentSlotPreview(
+                    label: "Armor",
+                    item: character.equipment.body
+                )
+            }
+        }
+        .padding()
+        .background(Color.white.opacity(0.05))
+        .cornerRadius(12)
     }
 
     private var characterHeader: some View {
@@ -631,6 +676,47 @@ struct CombatStatDisplay: View {
                 .font(.headline)
                 .foregroundColor(.white)
         }
+    }
+}
+
+// MARK: - Equipment Slot Preview
+
+struct EquipmentSlotPreview: View {
+    let label: String
+    let item: Item?
+
+    var body: some View {
+        VStack(spacing: 4) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(item != nil ? Color.blue.opacity(0.2) : Color.gray.opacity(0.2))
+                    .frame(width: 44, height: 44)
+
+                if let item = item {
+                    Image(systemName: item.icon)
+                        .foregroundColor(.blue)
+                } else {
+                    Image(systemName: "questionmark")
+                        .foregroundColor(.gray.opacity(0.5))
+                }
+            }
+
+            Text(label)
+                .font(.caption2)
+                .foregroundColor(.gray)
+
+            if let item = item {
+                Text(item.name)
+                    .font(.caption2)
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+            } else {
+                Text("Empty")
+                    .font(.caption2)
+                    .foregroundColor(.gray)
+            }
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 

@@ -536,7 +536,7 @@ struct AbilityData: Codable {
 }
 
 /// Dice roll representation
-struct DiceRoll: Codable {
+struct DiceRoll: Codable, Equatable {
     let count: Int      // Number of dice
     let sides: Int      // Sides per die (d4, d6, d8, d10, d12, d20)
     let modifier: Int   // Flat modifier added

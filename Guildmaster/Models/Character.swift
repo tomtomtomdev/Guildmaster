@@ -50,6 +50,11 @@ class Character: Identifiable, Codable, ObservableObject {
     let classTrait: ClassTrait
     @Published var acquiredTraits: [String]  // IDs of earned traits
 
+    // Equipment
+    @Published var equipment: CharacterEquipment = CharacterEquipment()
+    @Published var inventory: [Item] = []  // Combat consumables
+    let maxInventorySize: Int = 6
+
     // Coding keys for Codable
     enum CodingKeys: String, CodingKey {
         case id, name, race, characterClass
@@ -61,6 +66,7 @@ class Character: Identifiable, Codable, ObservableObject {
         case hireCost, hireDate
         case combatPosition
         case racialTrait, classTrait, acquiredTraits
+        case equipment, inventory
     }
 
     init(
@@ -168,6 +174,8 @@ class Character: Identifiable, Codable, ObservableObject {
         racialTrait = try container.decode(RacialTrait.self, forKey: .racialTrait)
         classTrait = try container.decode(ClassTrait.self, forKey: .classTrait)
         acquiredTraits = try container.decode([String].self, forKey: .acquiredTraits)
+        equipment = try container.decodeIfPresent(CharacterEquipment.self, forKey: .equipment) ?? CharacterEquipment()
+        inventory = try container.decodeIfPresent([Item].self, forKey: .inventory) ?? []
     }
 
     func encode(to encoder: Encoder) throws {
@@ -197,6 +205,8 @@ class Character: Identifiable, Codable, ObservableObject {
         try container.encode(racialTrait, forKey: .racialTrait)
         try container.encode(classTrait, forKey: .classTrait)
         try container.encode(acquiredTraits, forKey: .acquiredTraits)
+        try container.encode(equipment, forKey: .equipment)
+        try container.encode(inventory, forKey: .inventory)
     }
 
     // MARK: - Hire Cost
@@ -517,5 +527,172 @@ extension Character {
         }
 
         return .human  // Fallback
+    }
+}
+
+// MARK: - Equipment Methods
+
+extension Character {
+
+    /// Check if character can equip an item
+    func canEquip(item: Item) -> Bool {
+        // Check item type
+        guard item.data.itemType == .weapon || item.data.itemType == .armor else {
+            return false
+        }
+
+        // Check strength requirement for heavy armor
+        if let armorType = item.data.armorType {
+            if stats.str < armorType.strengthRequirement {
+                return false
+            }
+        }
+
+        // Check class weapon restrictions (optional - warriors can use all, etc.)
+        // For now, allow all classes to use any weapon
+
+        return true
+    }
+
+    /// Equip an item to a slot
+    func equip(item: Item, to slot: EquipmentSlot) {
+        switch slot {
+        case .mainHand:
+            equipment.mainHand = item
+        case .offHand:
+            equipment.offHand = item
+        case .body:
+            equipment.body = item
+        case .none:
+            break
+        }
+
+        // Recalculate stats with new equipment
+        recalculateSecondaryStats()
+    }
+
+    /// Unequip from a slot
+    func unequip(slot: EquipmentSlot) {
+        switch slot {
+        case .mainHand:
+            equipment.mainHand = nil
+        case .offHand:
+            equipment.offHand = nil
+        case .body:
+            equipment.body = nil
+        case .none:
+            break
+        }
+
+        // Recalculate stats
+        recalculateSecondaryStats()
+    }
+
+    /// Recalculate secondary stats (call after equipment changes)
+    func recalculateSecondaryStats() {
+        let currentHP = secondaryStats.hp
+        let currentStamina = secondaryStats.stamina
+        let currentMana = secondaryStats.mana
+
+        secondaryStats = SecondaryStats.calculate(
+            from: stats,
+            characterClass: characterClass,
+            race: race,
+            level: level,
+            equipment: equipment
+        )
+
+        // Preserve current resource values (don't heal on equip change)
+        secondaryStats.hp = min(currentHP, secondaryStats.maxHP)
+        secondaryStats.stamina = min(currentStamina, secondaryStats.maxStamina)
+        secondaryStats.mana = min(currentMana, secondaryStats.maxMana)
+    }
+
+    /// Total armor class including equipment
+    var totalArmorClass: Int {
+        var ac = secondaryStats.armorClass
+
+        // Add armor bonus
+        if let armor = equipment.body {
+            ac += armor.data.armorBonus
+        }
+
+        // Add shield bonus
+        if let shield = equipment.offHand, shield.data.armorType == .shield {
+            ac += shield.data.armorBonus
+        }
+
+        return ac
+    }
+
+    /// Weapon damage dice
+    var weaponDamage: DiceRoll {
+        if let weapon = equipment.mainHand, let damage = weapon.data.damage {
+            return damage
+        }
+        // Unarmed damage
+        return DiceRoll(count: 1, sides: 4, modifier: modifier(for: .str))
+    }
+
+    /// Weapon attack range
+    var attackRange: Int {
+        if let weapon = equipment.mainHand {
+            return weapon.data.attackRange ?? 1
+        }
+        return 1
+    }
+}
+
+// MARK: - Character Equipment
+
+/// Equipment slots for a character
+struct CharacterEquipment: Codable, Equatable {
+    var mainHand: Item?
+    var offHand: Item?
+    var body: Item?
+
+    init(mainHand: Item? = nil, offHand: Item? = nil, body: Item? = nil) {
+        self.mainHand = mainHand
+        self.offHand = offHand
+        self.body = body
+    }
+
+    /// Get item in a specific slot
+    func item(in slot: EquipmentSlot) -> Item? {
+        switch slot {
+        case .mainHand: return mainHand
+        case .offHand: return offHand
+        case .body: return body
+        case .none: return nil
+        }
+    }
+
+    /// Check if a slot is empty
+    func isEmpty(_ slot: EquipmentSlot) -> Bool {
+        return item(in: slot) == nil
+    }
+
+    /// Total armor bonus from equipment
+    var totalArmorBonus: Int {
+        var bonus = 0
+        if let armor = body {
+            bonus += armor.data.armorBonus
+        }
+        if let shield = offHand, shield.data.armorType == .shield {
+            bonus += shield.data.armorBonus
+        }
+        return bonus
+    }
+
+    /// All equipped items
+    var allItems: [Item] {
+        return [mainHand, offHand, body].compactMap { $0 }
+    }
+
+    // Custom Equatable since Item is a class
+    static func == (lhs: CharacterEquipment, rhs: CharacterEquipment) -> Bool {
+        return lhs.mainHand?.id == rhs.mainHand?.id &&
+               lhs.offHand?.id == rhs.offHand?.id &&
+               lhs.body?.id == rhs.body?.id
     }
 }

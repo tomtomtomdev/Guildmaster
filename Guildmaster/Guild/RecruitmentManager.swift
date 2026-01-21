@@ -105,5 +105,29 @@ class RecruitmentManager: ObservableObject {
     var cheapestRecruit: Character? {
         return recruitPool.min { $0.hireCost < $1.hireCost }
     }
+
+    // MARK: - Save/Load
+
+    func save() -> RecruitmentSaveData {
+        return RecruitmentSaveData(
+            recruitPool: recruitPool,
+            minPoolSize: minPoolSize,
+            maxPoolSize: maxPoolSize
+        )
+    }
+
+    func load(from data: RecruitmentSaveData) {
+        recruitPool = data.recruitPool
+        minPoolSize = data.minPoolSize
+        maxPoolSize = data.maxPoolSize
+    }
+}
+
+// MARK: - Save Data
+
+struct RecruitmentSaveData: Codable {
+    let recruitPool: [Character]
+    let minPoolSize: Int
+    let maxPoolSize: Int
 }
 

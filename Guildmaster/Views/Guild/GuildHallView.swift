@@ -56,6 +56,16 @@ struct GuildHallView: View {
                             currentScreen = .recruitment
                         }
 
+                        // Armory button
+                        NavigationCard(
+                            title: "Armory",
+                            subtitle: "\(ItemManager.shared.guildInventory.count) items",
+                            icon: "archivebox.fill",
+                            badgeCount: ItemManager.shared.guildInventory.isEmpty ? nil : ItemManager.shared.guildInventory.count
+                        ) {
+                            currentScreen = .inventory
+                        }
+
                         // Quick roster preview
                         rosterPreview
                     }
