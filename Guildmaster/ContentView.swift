@@ -57,6 +57,12 @@ struct ContentView: View {
 
         case .inventory:
             InventoryView(currentScreen: $currentScreen)
+
+        case .ledger:
+            LedgerView(currentScreen: $currentScreen)
+
+        case .training:
+            TrainingView(currentScreen: $currentScreen)
         }
     }
 
@@ -78,6 +84,8 @@ enum GameScreen {
     case recruitment
     case testCombat
     case inventory
+    case ledger
+    case training
 }
 
 /// Main menu view

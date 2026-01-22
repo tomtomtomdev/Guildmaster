@@ -96,6 +96,16 @@ enum AcquiredTrait: String, CaseIterable, Codable {
         }
     }
 
+    /// Whether this is a positive trait
+    var isPositive: Bool {
+        return valence == .positive
+    }
+
+    /// Display name for UI
+    var displayName: String {
+        return rawValue
+    }
+
     /// Combat stat modifiers from this trait
     var combatModifiers: TraitCombatModifiers {
         switch self {

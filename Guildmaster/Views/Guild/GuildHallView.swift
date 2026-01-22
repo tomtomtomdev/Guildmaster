@@ -66,6 +66,26 @@ struct GuildHallView: View {
                             currentScreen = .inventory
                         }
 
+                        // Training button
+                        NavigationCard(
+                            title: "Training Grounds",
+                            subtitle: "\(TrainingManager.shared.trainingSlots.count)/\(TrainingManager.shared.maxSlots) training",
+                            icon: "figure.martial.arts",
+                            badgeCount: TrainingManager.shared.trainingSlots.isEmpty ? nil : TrainingManager.shared.trainingSlots.count
+                        ) {
+                            currentScreen = .training
+                        }
+
+                        // Ledger button
+                        NavigationCard(
+                            title: "Guild Ledger",
+                            subtitle: "\(guildManager.gold)g treasury",
+                            icon: "book.fill",
+                            badgeCount: nil
+                        ) {
+                            currentScreen = .ledger
+                        }
+
                         // Quick roster preview
                         rosterPreview
                     }
