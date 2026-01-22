@@ -13,6 +13,8 @@ enum QuestType: String, Codable, CaseIterable {
     case extermination = "Extermination"
     case rescue = "Rescue"
     case escort = "Escort"
+    case investigation = "Investigation"
+    case defense = "Defense"
 
     var description: String {
         switch self {
@@ -22,6 +24,10 @@ enum QuestType: String, Codable, CaseIterable {
             return "Save the captive and defeat the captors"
         case .escort:
             return "Protect the client through dangerous territory"
+        case .investigation:
+            return "Uncover clues and solve the mystery"
+        case .defense:
+            return "Hold your position against waves of attackers"
         }
     }
 
@@ -30,6 +36,28 @@ enum QuestType: String, Codable, CaseIterable {
         case .extermination: return "flame.fill"
         case .rescue: return "person.fill.badge.plus"
         case .escort: return "figure.walk"
+        case .investigation: return "magnifyingglass"
+        case .defense: return "shield.fill"
+        }
+    }
+
+    /// Whether this quest type includes skill challenges
+    var hasSkillChallenges: Bool {
+        switch self {
+        case .investigation: return true
+        case .escort: return true
+        default: return false
+        }
+    }
+
+    /// Number of combat encounters for this quest type
+    var encounterCount: Int {
+        switch self {
+        case .extermination: return 3
+        case .rescue: return 2
+        case .escort: return 3
+        case .investigation: return 2
+        case .defense: return 4  // Waves
         }
     }
 }
@@ -490,19 +518,121 @@ extension Quest {
         )
     }
 
+    // MARK: - Investigation Quests
+
+    /// Basic quest - The Missing Alchemist (Investigation)
+    static func missingAlchemist() -> Quest {
+        return Quest(
+            title: "The Missing Alchemist",
+            type: .investigation,
+            tier: .basic,
+            description: "An alchemist vanished from their shop. Investigate the disappearance.",
+            flavorText: "\"They left their work unfinished. Most unlike them...\"",
+            recommendedLevel: 2,
+            rewards: QuestRewards(
+                gold: 300,
+                xp: 180,
+                itemIds: ["healing_potion", "antidote"],
+                reputationChanges: ["merchants": 10]
+            ),
+            encounters: [
+                QuestEncounter(enemyTemplates: [.darkCultist, .skeleton], terrain: .ground),
+                QuestEncounter(enemyTemplates: [.darkCultist, .darkCultist, .goblinShaman], terrain: .ground, isBoss: true)
+            ]
+        )
+    }
+
+    /// Advanced quest - The Haunted Manor (Investigation)
+    static func hauntedManor() -> Quest {
+        return Quest(
+            title: "The Haunted Manor",
+            type: .investigation,
+            tier: .advanced,
+            description: "Investigate strange occurrences at the old Blackwood Manor.",
+            flavorText: "\"The servants speak of shadows that move on their own...\"",
+            recommendedLevel: 5,
+            rewards: QuestRewards(
+                gold: 500,
+                xp: 320,
+                itemIds: ["silver_dagger", "ghostbane_amulet"],
+                reputationChanges: ["temple": 20, "nobility": 10]
+            ),
+            encounters: [
+                QuestEncounter(enemyTemplates: [.skeleton, .skeleton, .skeleton], terrain: .ground),
+                QuestEncounter(enemyTemplates: [.darkCultist, .darkPriest], terrain: .ground, isBoss: true)
+            ]
+        )
+    }
+
+    // MARK: - Defense Quests
+
+    /// Basic quest - Village Defense (Defense)
+    static func villageDefense() -> Quest {
+        return Quest(
+            title: "Village Defense",
+            type: .defense,
+            tier: .basic,
+            description: "Defend the village of Millbrook from goblin raiders.",
+            flavorText: "\"They come every full moon. This time, we're ready.\"",
+            recommendedLevel: 2,
+            rewards: QuestRewards(
+                gold: 350,
+                xp: 200,
+                itemIds: ["healing_potion", "shield_small"],
+                reputationChanges: ["frontier": 20]
+            ),
+            encounters: [
+                QuestEncounter(enemyTemplates: [.goblinScout, .goblinScout], terrain: .ground),
+                QuestEncounter(enemyTemplates: [.goblinScout, .goblinScout, .goblinScout], terrain: .ground),
+                QuestEncounter(enemyTemplates: [.goblinScout, .goblinShaman], terrain: .ground),
+                QuestEncounter(enemyTemplates: [.orcWarrior, .goblinScout], terrain: .ground, isBoss: true)
+            ]
+        )
+    }
+
+    /// Advanced quest - Hold the Bridge (Defense)
+    static func holdTheBridge() -> Quest {
+        return Quest(
+            title: "Hold the Bridge",
+            type: .defense,
+            tier: .advanced,
+            description: "Hold the Stone Bridge against the orc warband until reinforcements arrive.",
+            flavorText: "\"If they cross, the entire valley falls. We cannot let that happen.\"",
+            recommendedLevel: 5,
+            rewards: QuestRewards(
+                gold: 550,
+                xp: 400,
+                itemIds: ["plate_armor", "greatsword"],
+                reputationChanges: ["guard": 30, "nobility": 15]
+            ),
+            encounters: [
+                QuestEncounter(enemyTemplates: [.orcWarrior, .orcWarrior], terrain: .ground),
+                QuestEncounter(enemyTemplates: [.orcWarrior, .orcWarrior, .goblinScout], terrain: .ground),
+                QuestEncounter(enemyTemplates: [.ogre, .orcWarrior], terrain: .ground),
+                QuestEncounter(enemyTemplates: [.orcWarlord, .orcWarrior], terrain: .ground, isBoss: true)
+            ]
+        )
+    }
+
     /// Get all available quest templates
     static var allTemplates: [Quest] {
         return [
+            // Basic
             clearTheBasement(),
             goblinCamp(),
             banditHideout(),
             missingMerchant(),
             caravanGuard(),
+            missingAlchemist(),
+            villageDefense(),
+            // Advanced
             cryptCleanup(),
             orcWarband(),
             cultistRitual(),
             trollCave(),
-            merchantPrince()
+            merchantPrince(),
+            hauntedManor(),
+            holdTheBridge()
         ]
     }
 }

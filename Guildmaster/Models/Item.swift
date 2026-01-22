@@ -106,6 +106,10 @@ struct ConsumableEffect: Codable, Equatable {
         case buff = "Buff"              // Temporary stat boost
         case light = "Light"            // Illumination
         case sustenance = "Sustenance"  // Prevents hunger (future)
+        case stealth = "Stealth"        // Invisibility
+        case speed = "Speed"            // Movement boost
+        case utility = "Utility"        // General utility items
+        case holyDamage = "Holy Damage" // Damage to undead
     }
 
     static let minorHealing = ConsumableEffect(effectType: .healing, value: 10, duration: 0)
@@ -118,6 +122,15 @@ struct ConsumableEffect: Codable, Equatable {
     static let minorHealing5 = ConsumableEffect(effectType: .healing, value: 5, duration: 0)
     static let light = ConsumableEffect(effectType: .light, value: 3, duration: 10)
     static let sustenance = ConsumableEffect(effectType: .sustenance, value: 1, duration: 0)
+    static let greaterHealing = ConsumableEffect(effectType: .healing, value: 50, duration: 0)
+    static let strengthBuff = ConsumableEffect(effectType: .buff, value: 4, duration: 5)
+    static let speedBuff = ConsumableEffect(effectType: .speed, value: 3, duration: 5)
+    static let invisibility = ConsumableEffect(effectType: .stealth, value: 1, duration: 3)
+    static let smoke = ConsumableEffect(effectType: .stealth, value: 0, duration: 2)
+    static let oilDamage = ConsumableEffect(effectType: .damage, value: 10, duration: 0)
+    static let holyDamage = ConsumableEffect(effectType: .holyDamage, value: 20, duration: 0)
+    static let utility = ConsumableEffect(effectType: .utility, value: 1, duration: 0)
+    static let poisonResist = ConsumableEffect(effectType: .buff, value: 10, duration: 10)
 }
 
 // MARK: - Item Data
@@ -347,6 +360,10 @@ class Item: Identifiable, Codable, ObservableObject {
                 case .buff: return "arrow.up.circle.fill"
                 case .light: return "flashlight.on.fill"
                 case .sustenance: return "fork.knife"
+                case .stealth: return "eye.slash.fill"
+                case .speed: return "hare.fill"
+                case .utility: return "wrench.fill"
+                case .holyDamage: return "sun.max.fill"
                 }
             }
         }
@@ -358,7 +375,7 @@ class Item: Identifiable, Codable, ObservableObject {
 
 /// Predefined item templates - factory pattern
 enum ItemTemplate: String, CaseIterable, Codable {
-    // Weapons (10)
+    // Weapons (15)
     case rusty_sword
     case iron_sword
     case steel_sword
@@ -369,8 +386,13 @@ enum ItemTemplate: String, CaseIterable, Codable {
     case wooden_staff
     case oak_staff
     case dagger
+    case mace
+    case war_hammer
+    case spear
+    case crossbow
+    case great_sword
 
-    // Armor (10)
+    // Armor (15)
     case leather_armor
     case studded_leather
     case hide_armor
@@ -381,8 +403,13 @@ enum ItemTemplate: String, CaseIterable, Codable {
     case acolyte_vestments
     case shield
     case tower_shield
+    case plate_mail
+    case half_plate
+    case brigandine
+    case buckler
+    case enchanted_robes
 
-    // Consumables (10)
+    // Consumables (20)
     case minor_healing_potion
     case healing_potion
     case stamina_potion
@@ -393,6 +420,16 @@ enum ItemTemplate: String, CaseIterable, Codable {
     case bandage
     case torch
     case rations
+    case greater_healing_potion
+    case strength_potion
+    case speed_potion
+    case invisibility_potion
+    case smoke_bomb
+    case oil_flask
+    case holy_water
+    case lockpick
+    case rope
+    case antitoxin
 
     /// Create an Item instance from this template
     func createItem(quantity: Int = 1) -> Item {
@@ -505,6 +542,56 @@ enum ItemTemplate: String, CaseIterable, Codable {
                 description: "A sharp dagger. Quick and deadly in skilled hands."
             ))
 
+        case .mace:
+            return ("Mace", ItemData.weapon(
+                type: .axe,  // Uses STR
+                damage: DiceRoll(count: 1, sides: 6, modifier: 1),
+                value: 40,
+                weight: 4,
+                description: "A heavy mace. Effective against armored foes."
+            ))
+
+        case .war_hammer:
+            return ("War Hammer", ItemData.weapon(
+                type: .axe,  // Uses STR
+                damage: DiceRoll(count: 1, sides: 12, modifier: 2),
+                twoHanded: true,
+                value: 120,
+                weight: 10,
+                description: "A massive two-handed hammer. Crushes armor and bones alike."
+            ))
+
+        case .spear:
+            return ("Spear", ItemData.weapon(
+                type: .sword,
+                damage: DiceRoll(count: 1, sides: 8, modifier: 0),
+                range: 2,
+                value: 35,
+                weight: 3,
+                description: "A long spear with reach. Can attack from behind allies."
+            ))
+
+        case .crossbow:
+            return ("Crossbow", ItemData.weapon(
+                type: .bow,
+                damage: DiceRoll(count: 1, sides: 10, modifier: 0),
+                range: 7,
+                twoHanded: true,
+                value: 100,
+                weight: 6,
+                description: "A mechanical crossbow. Powerful but slow to reload."
+            ))
+
+        case .great_sword:
+            return ("Great Sword", ItemData.weapon(
+                type: .sword,
+                damage: DiceRoll(count: 2, sides: 6, modifier: 2),
+                twoHanded: true,
+                value: 200,
+                weight: 6,
+                description: "A massive two-handed sword. Devastating in battle."
+            ))
+
         // ARMOR
         case .leather_armor:
             return ("Leather Armor", ItemData.armor(
@@ -598,6 +685,52 @@ enum ItemTemplate: String, CaseIterable, Codable {
                 description: "A massive shield providing excellent cover. Heavy and unwieldy."
             ))
 
+        case .plate_mail:
+            return ("Plate Mail", ItemData.armor(
+                type: .heavy,
+                bonus: 6,
+                value: 500,
+                weight: 55,
+                description: "Full plate armor. Maximum protection. STR 15 required."
+            ))
+
+        case .half_plate:
+            return ("Half Plate", ItemData.armor(
+                type: .medium,
+                bonus: 4,
+                value: 350,
+                weight: 30,
+                description: "Plate armor covering vital areas. STR 12 required."
+            ))
+
+        case .brigandine:
+            return ("Brigandine", ItemData.armor(
+                type: .medium,
+                bonus: 3,
+                value: 180,
+                weight: 25,
+                description: "Cloth armor lined with metal plates. Good balance of protection and mobility."
+            ))
+
+        case .buckler:
+            return ("Buckler", ItemData.armor(
+                type: .shield,
+                bonus: 1,
+                slot: .offHand,
+                value: 25,
+                weight: 2,
+                description: "A small, light shield. Easy to use but offers minimal protection."
+            ))
+
+        case .enchanted_robes:
+            return ("Enchanted Robes", ItemData.armor(
+                type: .robe,
+                bonus: 2,
+                value: 200,
+                weight: 4,
+                description: "Robes woven with protective enchantments. Favored by mages."
+            ))
+
         // CONSUMABLES
         case .minor_healing_potion:
             return ("Minor Healing Potion", ItemData.consumable(
@@ -678,6 +811,96 @@ enum ItemTemplate: String, CaseIterable, Codable {
                 value: 5,
                 weight: 2,
                 description: "A day's worth of dried food. Prevents hunger penalties."
+            ))
+
+        case .greater_healing_potion:
+            return ("Greater Healing Potion", ItemData.consumable(
+                effect: .greaterHealing,
+                value: 100,
+                weight: 1,
+                description: "A powerful healing elixir. Heals 50 HP."
+            ))
+
+        case .strength_potion:
+            return ("Strength Potion", ItemData.consumable(
+                effect: .strengthBuff,
+                maxStack: 5,
+                value: 75,
+                weight: 1,
+                description: "Grants +4 STR for 5 turns. The taste is terrible."
+            ))
+
+        case .speed_potion:
+            return ("Speed Potion", ItemData.consumable(
+                effect: .speedBuff,
+                maxStack: 5,
+                value: 60,
+                weight: 1,
+                description: "Grants +3 movement speed for 5 turns."
+            ))
+
+        case .invisibility_potion:
+            return ("Invisibility Potion", ItemData.consumable(
+                effect: .invisibility,
+                maxStack: 3,
+                value: 150,
+                weight: 1,
+                description: "Become invisible for 3 turns. Attacking ends the effect."
+            ))
+
+        case .smoke_bomb:
+            return ("Smoke Bomb", ItemData.consumable(
+                effect: .smoke,
+                maxStack: 5,
+                value: 30,
+                weight: 1,
+                description: "Creates a cloud of smoke, obscuring vision for 2 turns."
+            ))
+
+        case .oil_flask:
+            return ("Oil Flask", ItemData.consumable(
+                effect: .oilDamage,
+                maxStack: 5,
+                value: 20,
+                weight: 1,
+                description: "Flammable oil. Deals 10 damage and makes target vulnerable to fire."
+            ))
+
+        case .holy_water:
+            return ("Holy Water", ItemData.consumable(
+                effect: .holyDamage,
+                maxStack: 5,
+                value: 40,
+                weight: 1,
+                description: "Blessed water. Deals 20 radiant damage to undead and demons."
+            ))
+
+        case .lockpick:
+            return ("Lockpick", ItemData.consumable(
+                effect: .utility,
+                maxStack: 10,
+                value: 15,
+                weight: 0,
+                description: "A set of thieves' tools. Used to open locked containers."
+            ))
+
+        case .rope:
+            return ("Rope", ItemData.consumable(
+                effect: .utility,
+                stackable: false,
+                maxStack: 1,
+                value: 10,
+                weight: 5,
+                description: "50 feet of hempen rope. Useful for climbing and binding."
+            ))
+
+        case .antitoxin:
+            return ("Antitoxin", ItemData.consumable(
+                effect: .poisonResist,
+                maxStack: 5,
+                value: 50,
+                weight: 1,
+                description: "Grants resistance to poison for 10 turns."
             ))
         }
     }

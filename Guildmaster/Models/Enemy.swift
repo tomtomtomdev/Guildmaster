@@ -214,6 +214,15 @@ enum EnemyTemplate: String, CaseIterable, Codable {
     case troll
     case goblinShaman
 
+    // Additional Common enemies
+    case zombie
+    case wildBoar
+    case demonImp
+
+    // Additional Advanced enemies
+    case ghoul
+    case wraith
+
     // Bosses (Threat 150+)
     case orcWarlord
     case trollKing
@@ -308,6 +317,60 @@ enum EnemyTemplate: String, CaseIterable, Codable {
                 specialAbilities: ["Pack Tactics"]
             )
 
+        case .zombie:
+            return Enemy(
+                name: "Zombie",
+                enemyType: .undead,
+                tier: .common,
+                stats: StatBlock(str: 13, dex: 6, con: 16, int: 3, wis: 6, cha: 5),
+                maxHP: 22,
+                armorClass: 8,
+                movementSpeed: 4,
+                attackDamage: DiceRoll(count: 1, sides: 6, modifier: 1),
+                intelligenceTier: .low,
+                behaviorType: .aggressive,
+                threatRating: 25,
+                goldDrop: 0...5,
+                isUndead: true,
+                vulnerabilities: [.radiant, .fire],
+                specialAbilities: ["Undead Fortitude"]
+            )
+
+        case .wildBoar:
+            return Enemy(
+                name: "Wild Boar",
+                enemyType: .beast,
+                tier: .common,
+                stats: StatBlock(str: 13, dex: 11, con: 12, int: 2, wis: 9, cha: 5),
+                maxHP: 18,
+                armorClass: 11,
+                movementSpeed: 7,
+                attackDamage: DiceRoll(count: 1, sides: 6, modifier: 1),
+                intelligenceTier: .low,
+                behaviorType: .aggressive,
+                threatRating: 30,
+                goldDrop: 0...5,
+                specialAbilities: ["Charge", "Relentless"]
+            )
+
+        case .demonImp:
+            return Enemy(
+                name: "Demon Imp",
+                enemyType: .demon,
+                tier: .common,
+                stats: StatBlock(str: 6, dex: 17, con: 13, int: 11, wis: 12, cha: 14),
+                maxHP: 10,
+                armorClass: 13,
+                movementSpeed: 6,
+                attackDamage: DiceRoll(count: 1, sides: 4, modifier: 3),
+                intelligenceTier: .medium,
+                behaviorType: .cowardly,
+                threatRating: 35,
+                goldDrop: 5...20,
+                immunities: [.fire, .poison],
+                specialAbilities: ["Invisibility", "Magic Resistance"]
+            )
+
         // ADVANCED ENEMIES
         case .orcWarrior:
             return Enemy(
@@ -395,6 +458,45 @@ enum EnemyTemplate: String, CaseIterable, Codable {
                 threatRating: 50,
                 goldDrop: 15...35,
                 specialAbilities: ["Healing"]
+            )
+
+        case .ghoul:
+            return Enemy(
+                name: "Ghoul",
+                enemyType: .undead,
+                tier: .elite,
+                stats: StatBlock(str: 13, dex: 15, con: 10, int: 7, wis: 10, cha: 6),
+                maxHP: 36,
+                armorClass: 12,
+                movementSpeed: 6,
+                attackDamage: DiceRoll(count: 2, sides: 6, modifier: 2),
+                intelligenceTier: .low,
+                behaviorType: .aggressive,
+                threatRating: 75,
+                goldDrop: 15...40,
+                isUndead: true,
+                vulnerabilities: [.radiant],
+                specialAbilities: ["Paralyzing Claws", "Multi-Attack (2)"]
+            )
+
+        case .wraith:
+            return Enemy(
+                name: "Wraith",
+                enemyType: .undead,
+                tier: .elite,
+                stats: StatBlock(str: 6, dex: 16, con: 16, int: 12, wis: 14, cha: 15),
+                maxHP: 67,
+                armorClass: 13,
+                movementSpeed: 8,
+                attackDamage: DiceRoll(count: 3, sides: 6, modifier: 0),
+                intelligenceTier: .medium,
+                behaviorType: .tactical,
+                threatRating: 95,
+                goldDrop: 30...70,
+                isUndead: true,
+                immunities: [.poison, .necrotic],
+                vulnerabilities: [.radiant],
+                specialAbilities: ["Incorporeal", "Life Drain", "Sunlight Sensitivity"]
             )
 
         // BOSSES
