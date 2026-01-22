@@ -362,7 +362,7 @@ class AudioManager: ObservableObject {
         switch screen {
         case .mainMenu:
             playMusic(.mainMenu)
-        case .guildHall, .barracks, .recruitment, .inventory, .ledger, .training:
+        case .guildHall, .barracks, .recruitment, .inventory, .ledger, .training, .settings:
             playMusic(.guildHall)
         case .questBoard, .partySelection:
             playMusic(.exploration)

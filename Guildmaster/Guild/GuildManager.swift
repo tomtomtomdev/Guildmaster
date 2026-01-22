@@ -276,6 +276,32 @@ class GuildManager: ObservableObject {
         reputation = data.reputation
         stats = data.stats
     }
+
+    /// Delete all save data and reset to initial state
+    func deleteSaveData() {
+        // Clear UserDefaults save data
+        UserDefaults.standard.removeObject(forKey: "guildSaveData")
+
+        // Reset to default state
+        guildName = "The Iron Wolves"
+        gold = 500
+        roster = []
+        maxRosterSize = 6
+        currentDay = 1
+        reputation = [
+            "Crown": 0,
+            "MerchantGuild": 0,
+            "AdventurerGuild": 0,
+            "Common": 0
+        ]
+        stats = GuildStatistics()
+
+        // Clear related managers
+        RecruitmentManager.shared.recruitPool = []
+        QuestManager.shared.clearActiveQuest()
+        TrainingManager.shared.reset()
+        RelationshipManager.shared.reset()
+    }
 }
 
 // MARK: - Guild Statistics

@@ -202,6 +202,15 @@ class QuestManager: ObservableObject {
         )
     }
 
+    /// Clear active quest without affecting history (for data reset)
+    func clearActiveQuest() {
+        activeQuest = nil
+        questFlowState = .idle
+        availableQuests = []
+        completedQuests = []
+        failedQuests = []
+    }
+
     /// Get the current encounter for the active quest
     var currentEncounter: QuestEncounter? {
         return activeQuest?.currentEncounter

@@ -63,6 +63,9 @@ struct ContentView: View {
 
         case .training:
             TrainingView(currentScreen: $currentScreen)
+
+        case .settings:
+            SettingsView(currentScreen: $currentScreen)
         }
     }
 
@@ -86,6 +89,7 @@ enum GameScreen {
     case inventory
     case ledger
     case training
+    case settings
 }
 
 /// Main menu view
@@ -142,15 +146,14 @@ struct MainMenuView: View {
                     }
 
                     MenuButton(title: "Settings", icon: "gearshape") {
-                        // TODO: Settings
+                        currentScreen = .settings
                     }
-                    .disabled(true)
                 }
 
                 Spacer()
 
                 // Version
-                Text("Alpha v0.2 - Quest & Guild Update")
+                Text("Alpha v0.3 - Gold Master")
                     .font(.caption)
                     .foregroundColor(.gray.opacity(0.5))
                     .padding(.bottom, 20)

@@ -365,6 +365,8 @@ class TutorialManager: ObservableObject {
             showHintIfNeeded(.viewLedger, position: .top)
         case .training:
             showHintIfNeeded(.useTraining, position: .top)
+        case .settings:
+            break // No tutorial on settings
         }
     }
 
