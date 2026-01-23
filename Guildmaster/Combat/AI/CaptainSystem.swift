@@ -33,10 +33,9 @@ class CaptainSystem: ObservableObject {
 
     // MARK: - Captain Selection
 
-    /// Select the captain from a party (highest INT+CHA / 2)
+    /// Select the captain from a group (highest INT+CHA / 2)
     func selectCaptain(from units: [CombatUnit]) {
         captain = units
-            .filter { $0.isPlayerControlled }
             .max { captainRating($0) < captainRating($1) }
 
         if let captain = captain {
@@ -53,6 +52,9 @@ class CaptainSystem: ObservableObject {
     private func captainRating(_ unit: CombatUnit) -> Int {
         if let character = unit.character {
             return (character.stats.int + character.stats.cha) / 2
+        }
+        if let enemy = unit.enemy {
+            return (enemy.stats.int + enemy.stats.cha) / 2
         }
         return 0
     }

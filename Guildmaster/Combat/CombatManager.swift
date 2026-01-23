@@ -45,6 +45,7 @@ class CombatManager: ObservableObject {
         self.grid = HexGrid()
         self.turnManager = TurnManager()
         setupTurnManagerCallbacks()
+        setupAISystems()
     }
 
     private func setupTurnManagerCallbacks() {
@@ -58,6 +59,21 @@ class CombatManager: ObservableObject {
 
         turnManager.onCombatEnd = { [weak self] result in
             self?.handleCombatEnd(result)
+        }
+
+        turnManager.onUnitDiedFromDOT = { [weak self] unit, effectType in
+            let cause = effectType == .poisoned ? "poison" : "burning"
+            self?.addLogEntry("\(unit.name) succumbs to \(cause)!", type: .death)
+            self?.combatStats.kills += 1
+            if unit.isPlayerControlled {
+                self?.combatStats.partyDeaths += 1
+            } else {
+                self?.combatStats.enemiesKilled += 1
+            }
+            if let pos = unit.position, var tile = self?.grid.tiles[pos] {
+                tile.occupant = nil
+                self?.grid.tiles[pos] = tile
+            }
         }
     }
 
@@ -88,6 +104,9 @@ class CombatManager: ObservableObject {
         // Cache units
         playerUnits = turnManager.livingUnits(playerControlled: true)
         enemyUnits = turnManager.livingUnits(playerControlled: false)
+
+        // Select captain from enemy units
+        captainSystem.selectCaptain(from: enemyUnits)
 
         // Start combat
         state = .inProgress
@@ -536,19 +555,23 @@ class CombatManager: ObservableObject {
     private let combatAI = CombatAI()
     @Published var captainSystem = CaptainSystem()
 
+    private func setupAISystems() {
+        combatAI.captainSystem = captainSystem
+    }
+
     // MARK: - AI Turn Execution
 
     private func executeAITurn(_ unit: CombatUnit) {
-        // Use the INT-driven AI system
-        let battleState = createBattleState()
-        let aiAction = combatAI.decideAction(for: unit, in: battleState)
+        guard let battleState = createBattleState() else {
+            endTurn()
+            return
+        }
 
-        // Log AI decision based on INT tier
-        logAIDecision(unit: unit, action: aiAction)
+        // Phase 1: Decide and execute movement
+        let moveAction = combatAI.decideAction(for: unit, in: battleState)
 
-        // Execute the AI's chosen action
-        switch aiAction {
-        case .move(let destination):
+        if case .move(let destination) = moveAction {
+            logAIDecision(unit: unit, action: moveAction)
             let blockedHexes = getBlockedHexes(excluding: unit.id)
             if let path = HexPathfinder.findPath(
                 from: unit.position!,
@@ -558,24 +581,44 @@ class CombatManager: ObservableObject {
                 maxCost: unit.movementSpeed
             ) {
                 executeMove(unit: unit, path: path)
+                turnManager.recordMovement()
             }
-            turnManager.recordMovement()
+        }
+
+        // Phase 2: Decide and execute action (with updated state after move)
+        guard let postMoveState = createBattleState() else {
+            endTurn()
+            return
+        }
+
+        let actionDecision = combatAI.decideAction(for: unit, in: postMoveState)
+
+        switch actionDecision {
+        case .move:
+            // Already moved, skip
+            break
 
         case .attack(let target):
+            logAIDecision(unit: unit, action: actionDecision)
             executeAttack(.basicAttack, by: unit, at: target)
             turnManager.recordAction()
 
         case .useAbility(let ability, let target):
+            logAIDecision(unit: unit, action: actionDecision)
             executeAbility(ability, by: unit, at: target)
             turnManager.recordAction()
 
         case .defend:
+            logAIDecision(unit: unit, action: actionDecision)
             unit.applyStatus(StatusEffect(type: .defending, duration: 1))
             addLogEntry("\(unit.name) defends.", type: .action)
             turnManager.recordAction()
 
         case .pass:
-            addLogEntry("\(unit.name) waits.", type: .action)
+            // Only log pass if we also didn't move
+            if case .move = moveAction {} else {
+                logAIDecision(unit: unit, action: actionDecision)
+            }
         }
 
         // End AI turn after a delay for visibility
@@ -585,14 +628,15 @@ class CombatManager: ObservableObject {
     }
 
     /// Create a battle state snapshot for AI decision making
-    private func createBattleState() -> BattleState {
+    private func createBattleState() -> BattleState? {
+        guard let currentUnit = turnManager.currentUnit else { return nil }
         return BattleState(
             grid: grid,
             allUnits: turnManager.livingUnits,
-            currentUnit: turnManager.currentUnit!,
+            currentUnit: currentUnit,
             hasMovedThisTurn: turnManager.hasMovedThisTurn,
             hasActedThisTurn: turnManager.hasActedThisTurn,
-            blockedHexes: getBlockedHexes(excluding: turnManager.currentUnit?.id ?? UUID()),
+            blockedHexes: getBlockedHexes(excluding: currentUnit.id),
             captainCommand: captainSystem.currentCommand
         )
     }
@@ -702,7 +746,11 @@ class CombatManager: ObservableObject {
 
     private func showAttackRange(for unit: CombatUnit) {
         guard let position = unit.position else { return }
-        grid.highlightAttackRange(from: position, range: 1)
+        let maxRange = unit.abilities
+            .filter { !$0.data.isPassive }
+            .map { $0.data.range }
+            .max() ?? 1
+        grid.highlightAttackRange(from: position, range: maxRange)
     }
 
     private func highlightEnemyTargets(from position: HexCoordinate, range: Int) {

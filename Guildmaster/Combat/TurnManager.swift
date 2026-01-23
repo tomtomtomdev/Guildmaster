@@ -48,6 +48,7 @@ class TurnManager: ObservableObject {
     var onTurnEnd: ((CombatUnit) -> Void)?
     var onRoundStart: ((Int) -> Void)?
     var onCombatEnd: ((CombatResult) -> Void)?
+    var onUnitDiedFromDOT: ((CombatUnit, StatusEffectType) -> Void)?
 
     // MARK: - Initialization
 
@@ -85,12 +86,13 @@ class TurnManager: ObservableObject {
             let dexMod = allUnits[i].dexterityModifier
             let roll = Int.random(in: 1...20)
             allUnits[i].initiativeRoll = roll + dexMod
+            allUnits[i].initiativeTiebreaker = Int.random(in: 0...999)
         }
 
-        // Sort by initiative (highest first), with random tiebreaker
+        // Sort by initiative (highest first), with stable tiebreaker
         turnOrder = allUnits.sorted { lhs, rhs in
             if lhs.initiativeRoll == rhs.initiativeRoll {
-                return Bool.random()
+                return lhs.initiativeTiebreaker > rhs.initiativeTiebreaker
             }
             return lhs.initiativeRoll > rhs.initiativeRoll
         }
@@ -158,16 +160,21 @@ class TurnManager: ObservableObject {
         if unit.isPoisoned {
             let poisonDamage = DiceRoll(count: 1, sides: 4, modifier: 0).roll()
             unit.takeDamage(poisonDamage)
+            if !unit.isAlive {
+                onUnitDiedFromDOT?(unit, .poisoned)
+                markUnitDead(unit)
+                return
+            }
         }
 
         if unit.isBurning {
             let burnDamage = DiceRoll(count: 1, sides: 6, modifier: 0).roll()
             unit.takeDamage(burnDamage)
-        }
-
-        // Check if unit died from DOT
-        if !unit.isAlive {
-            markUnitDead(unit)
+            if !unit.isAlive {
+                onUnitDiedFromDOT?(unit, .burning)
+                markUnitDead(unit)
+                return
+            }
         }
     }
 
@@ -330,6 +337,7 @@ class CombatUnit: Identifiable, ObservableObject {
 
     // Turn tracking
     var initiativeRoll: Int = 0
+    var initiativeTiebreaker: Int = 0
     var hasActedThisRound: Bool = false
 
     // Stats

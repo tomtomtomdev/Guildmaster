@@ -28,11 +28,14 @@ class CombatAI: CombatAIProtocol {
     /// Low INT mistake chance
     static let lowINTMistakeChance: Double = 0.25  // 25% chance of obvious mistake
 
+    /// Captain system reference for command modifiers
+    weak var captainSystem: CaptainSystem?
+
     // MARK: - Main Decision Method
 
     func decideAction(for unit: CombatUnit, in state: BattleState) -> AIAction {
         // Get all possible actions
-        var options = generateAllOptions(for: unit, in: state)
+        let options = generateAllOptions(for: unit, in: state)
 
         // Score all options
         var scoredOptions = options.map { option -> ScoredOption in
@@ -42,6 +45,13 @@ class CombatAI: CombatAIProtocol {
 
         // Apply INT-based modifications
         scoredOptions = applyINTModifications(scoredOptions, unit: unit, state: state)
+
+        // Apply captain command modifiers
+        if let captainSystem = captainSystem {
+            scoredOptions = scoredOptions.map { option in
+                captainSystem.applyCommandModifier(to: option, for: unit, state: state)
+            }
+        }
 
         // Sort by final score
         scoredOptions.sort { $0.finalScore > $1.finalScore }
