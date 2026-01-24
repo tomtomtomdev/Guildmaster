@@ -63,6 +63,7 @@ class CombatManager: ObservableObject {
 
         turnManager.onUnitDiedFromDOT = { [weak self] unit, effectType in
             let cause = effectType == .poisoned ? "poison" : "burning"
+            CombatCommentary.shared.addEvent(.death(victim: unit.name, killer: nil))
             self?.addLogEntry("\(unit.name) succumbs to \(cause)!", type: .death)
             self?.combatStats.kills += 1
             if unit.isPlayerControlled {
@@ -111,6 +112,8 @@ class CombatManager: ObservableObject {
 
         // Start combat
         state = .inProgress
+        CombatCommentary.shared.clear()
+        CombatCommentary.shared.addEvent(.combatStart)
         addLogEntry("Combat begins!", type: .system)
         turnManager.startRound()
     }
@@ -166,6 +169,7 @@ class CombatManager: ObservableObject {
     // MARK: - Turn Handling
 
     private func handleTurnStart(_ unit: CombatUnit) {
+        CombatCommentary.shared.addEvent(.turnStart(unit: unit.name))
         addLogEntry("\(unit.name)'s turn", type: .turnStart)
 
         // Clear previous highlights
@@ -188,8 +192,10 @@ class CombatManager: ObservableObject {
 
         switch result {
         case .victory:
+            CombatCommentary.shared.addEvent(.victory)
             addLogEntry("Victory! All enemies defeated.", type: .system)
         case .defeat:
+            CombatCommentary.shared.addEvent(.defeat)
             addLogEntry("Defeat... Your party has fallen.", type: .system)
         case .retreat:
             addLogEntry("Your party retreats from battle.", type: .system)
@@ -390,6 +396,7 @@ class CombatManager: ObservableObject {
         let autoHit = data.attackModifier >= 50
 
         if isMiss && !autoHit {
+            CombatCommentary.shared.addEvent(.miss(attacker: attacker.name, target: defender.name, isCriticalMiss: true))
             addLogEntry("\(attacker.name) misses \(defender.name)!", type: .miss)
             combatStats.misses += 1
             return
@@ -426,6 +433,7 @@ class CombatManager: ObservableObject {
             defender.takeDamage(damage)
             combatStats.totalDamageDealt += damage
 
+            CombatCommentary.shared.addEvent(.attack(attacker: attacker.name, target: defender.name, damage: damage, isCritical: isCritical))
             addLogEntry("\(attacker.name) hits \(defender.name) for \(damage) damage!", type: .damage)
 
             // Check for death
@@ -436,6 +444,7 @@ class CombatManager: ObservableObject {
             // Remove hidden status after attacking
             attacker.removeStatus(.hidden)
         } else {
+            CombatCommentary.shared.addEvent(.miss(attacker: attacker.name, target: defender.name, isCriticalMiss: false))
             addLogEntry("\(attacker.name)'s attack misses \(defender.name).", type: .miss)
             combatStats.misses += 1
         }
@@ -453,6 +462,7 @@ class CombatManager: ObservableObject {
                     let healAmount = data.healing?.roll() ?? 0
                     ally.heal(healAmount)
                     combatStats.totalHealing += healAmount
+                    CombatCommentary.shared.addEvent(.healing(healer: healer.name, target: ally.name, amount: healAmount))
                     addLogEntry("\(healer.name) heals \(ally.name) for \(healAmount)!", type: .heal)
                 }
             }
@@ -461,6 +471,7 @@ class CombatManager: ObservableObject {
             let healAmount = data.healing?.roll() ?? 0
             patient.heal(healAmount)
             combatStats.totalHealing += healAmount
+            CombatCommentary.shared.addEvent(.healing(healer: healer.name, target: patient.name, amount: healAmount))
             addLogEntry("\(healer.name) heals \(patient.name) for \(healAmount)!", type: .heal)
         }
     }
@@ -470,6 +481,7 @@ class CombatManager: ObservableObject {
         let data = ability.data
         let affectedHexes = center.hexesInRange(data.aoeRadius)
 
+        CombatCommentary.shared.addEvent(.abilityUsed(user: caster.name, ability: ability, target: nil))
         addLogEntry("\(caster.name) casts \(ability.rawValue)!", type: .action)
 
         for hex in affectedHexes {
@@ -527,6 +539,7 @@ class CombatManager: ObservableObject {
 
     /// Handle unit death
     private func handleDeath(_ unit: CombatUnit, killedBy killer: CombatUnit) {
+        CombatCommentary.shared.addEvent(.death(victim: unit.name, killer: killer.name))
         addLogEntry("\(unit.name) has been slain!", type: .death)
 
         combatStats.kills += 1
