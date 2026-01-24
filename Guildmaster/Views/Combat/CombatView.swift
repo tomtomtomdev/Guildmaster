@@ -58,16 +58,8 @@ struct CombatView: View {
     }
 
     private func handleHexTap(_ coordinate: HexCoordinate) {
-        // Handle based on current targeting mode
-        switch combatManager.targetingMode {
-        case .none:
-            // If it's player turn and we haven't moved, try to move
-            if combatManager.turnManager.isPlayerTurn && !combatManager.turnManager.hasMovedThisTurn {
-                combatManager.moveCurrentUnit(to: coordinate)
-            }
-        case .selectEnemy, .selectAlly, .selectArea, .selectHex:
-            combatManager.selectTarget(coordinate)
-        }
+        // Combat is fully autonomous - tapping hexes selects them for viewing
+        combatManager.grid.selectedHex = coordinate
     }
 
     @ViewBuilder
@@ -143,11 +135,6 @@ struct CombatSidePanel: View {
             Divider()
                 .background(Color.gray)
 
-            // Action buttons (player turn only)
-            if combatManager.turnManager.isPlayerTurn {
-                ActionButtonsView(combatManager: combatManager)
-            }
-
             Spacer()
 
             // Combat log
@@ -166,28 +153,8 @@ struct CombatBottomPanel: View {
         VStack(spacing: 8) {
             // Current unit info
             if let unit = combatManager.turnManager.currentUnit {
-                HStack {
-                    CurrentUnitView(unit: unit)
-                        .frame(maxWidth: .infinity)
-
-                    // End turn button
-                    if combatManager.turnManager.isPlayerTurn {
-                        Button(action: { combatManager.endTurn() }) {
-                            Text("End Turn")
-                                .font(.caption)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(Color.gray)
-                                .foregroundColor(.white)
-                                .cornerRadius(8)
-                        }
-                    }
-                }
-            }
-
-            // Action buttons (player turn only)
-            if combatManager.turnManager.isPlayerTurn {
-                ActionButtonsView(combatManager: combatManager)
+                CurrentUnitView(unit: unit)
+                    .frame(maxWidth: .infinity)
             }
         }
         .padding(8)

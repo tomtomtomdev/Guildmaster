@@ -28,8 +28,9 @@ class CombatAI: CombatAIProtocol {
     /// Low INT mistake chance
     static let lowINTMistakeChance: Double = 0.25  // 25% chance of obvious mistake
 
-    /// Captain system reference for command modifiers
-    weak var captainSystem: CaptainSystem?
+    /// Captain system references for command modifiers (one per team)
+    weak var enemyCaptainSystem: CaptainSystem?
+    weak var playerCaptainSystem: CaptainSystem?
 
     // MARK: - Main Decision Method
 
@@ -46,7 +47,8 @@ class CombatAI: CombatAIProtocol {
         // Apply INT-based modifications
         scoredOptions = applyINTModifications(scoredOptions, unit: unit, state: state)
 
-        // Apply captain command modifiers
+        // Apply captain command modifiers from the unit's team captain
+        let captainSystem = unit.isPlayerControlled ? playerCaptainSystem : enemyCaptainSystem
         if let captainSystem = captainSystem {
             scoredOptions = scoredOptions.map { option in
                 captainSystem.applyCommandModifier(to: option, for: unit, state: state)

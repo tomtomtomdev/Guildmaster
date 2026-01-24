@@ -164,7 +164,11 @@ class CaptainSystem: ObservableObject {
 
     /// Apply command modifiers to AI scoring
     func applyCommandModifier(to option: ScoredOption, for unit: CombatUnit, state: BattleState) -> ScoredOption {
-        guard let command = currentCommand else { return option }
+        guard let command = currentCommand,
+              let captain = captain else { return option }
+
+        // Commands only apply to units on the same team as the captain
+        guard unit.isPlayerControlled == captain.isPlayerControlled else { return option }
 
         // Check if unit will comply
         let compliance = checkCompliance(unit: unit, command: command)

@@ -105,8 +105,9 @@ class CombatManager: ObservableObject {
         playerUnits = turnManager.livingUnits(playerControlled: true)
         enemyUnits = turnManager.livingUnits(playerControlled: false)
 
-        // Select captain from enemy units
-        captainSystem.selectCaptain(from: enemyUnits)
+        // Select captains for each team
+        enemyCaptainSystem.selectCaptain(from: enemyUnits)
+        playerCaptainSystem.selectCaptain(from: playerUnits)
 
         // Start combat
         state = .inProgress
@@ -170,15 +171,9 @@ class CombatManager: ObservableObject {
         // Clear previous highlights
         grid.clearHighlights()
 
-        // If player controlled, wait for input
-        // If AI controlled, trigger AI decision
-        if !unit.isPlayerControlled {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.executeAITurn(unit)
-            }
-        } else {
-            // Show movement range
-            showMovementRange(for: unit)
+        // All units are AI-controlled, with INT determining decision quality
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.executeAITurn(unit)
         }
     }
 
@@ -553,10 +548,12 @@ class CombatManager: ObservableObject {
     // MARK: - AI Systems
 
     private let combatAI = CombatAI()
-    @Published var captainSystem = CaptainSystem()
+    @Published var enemyCaptainSystem = CaptainSystem()
+    @Published var playerCaptainSystem = CaptainSystem()
 
     private func setupAISystems() {
-        combatAI.captainSystem = captainSystem
+        combatAI.enemyCaptainSystem = enemyCaptainSystem
+        combatAI.playerCaptainSystem = playerCaptainSystem
     }
 
     // MARK: - AI Turn Execution
@@ -630,6 +627,7 @@ class CombatManager: ObservableObject {
     /// Create a battle state snapshot for AI decision making
     private func createBattleState() -> BattleState? {
         guard let currentUnit = turnManager.currentUnit else { return nil }
+        let captainSystem = currentUnit.isPlayerControlled ? playerCaptainSystem : enemyCaptainSystem
         return BattleState(
             grid: grid,
             allUnits: turnManager.livingUnits,
