@@ -15,7 +15,6 @@ struct TrainingView: View {
 
     @State private var selectedCharacter: Character?
     @State private var selectedActivity: TrainingActivity?
-    @State private var showingActivitySelection = false
 
     var body: some View {
         ZStack {
@@ -45,16 +44,14 @@ struct TrainingView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingActivitySelection) {
-            if let character = selectedCharacter {
-                ActivitySelectionSheet(
-                    character: character,
-                    onSelect: { activity in
-                        startTraining(character: character, activity: activity)
-                        showingActivitySelection = false
-                    }
-                )
-            }
+        .sheet(item: $selectedCharacter) { character in
+            ActivitySelectionSheet(
+                character: character,
+                onSelect: { activity in
+                    startTraining(character: character, activity: activity)
+                    selectedCharacter = nil
+                }
+            )
         }
     }
 
@@ -158,7 +155,6 @@ struct TrainingView: View {
                 ForEach(availableCharacters) { character in
                     AvailableForTrainingCard(character: character) {
                         selectedCharacter = character
-                        showingActivitySelection = true
                     }
                 }
             }
