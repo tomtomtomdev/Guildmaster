@@ -96,7 +96,8 @@ struct BarracksView: View {
             // Placeholder for symmetry
             Color.clear.frame(width: 60)
         }
-        .padding()
+        .padding(.horizontal)
+        .padding(.vertical, 10)
         .background(Color.black.opacity(0.3))
     }
 
