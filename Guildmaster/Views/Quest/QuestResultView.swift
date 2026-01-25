@@ -27,32 +27,36 @@ struct QuestResultView: View {
             // Background
             backgroundGradient
 
-            VStack(spacing: 24) {
-                Spacer()
+            VStack(spacing: 0) {
+                // Scrollable content
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Result banner
+                        resultBanner
+                            .padding(.top, 20)
 
-                // Result banner
-                resultBanner
+                        // Quest info
+                        questInfoSection
 
-                // Quest info
-                questInfoSection
+                        // Party results
+                        partyResultsSection
 
-                // Party results
-                partyResultsSection
+                        // Statistics
+                        statisticsSection
 
-                // Statistics
-                statisticsSection
-
-                // Rewards (if victory)
-                if isVictory {
-                    rewardsSection
+                        // Rewards (if victory)
+                        if isVictory {
+                            rewardsSection
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 16)
                 }
 
-                Spacer()
-
-                // Continue button
+                // Continue button (fixed at bottom)
                 continueButton
+                    .padding(.horizontal)
             }
-            .padding()
         }
     }
 
