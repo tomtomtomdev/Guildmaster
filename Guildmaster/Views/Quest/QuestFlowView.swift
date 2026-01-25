@@ -342,11 +342,28 @@ struct QuestFlowView: View {
     }
 
     private func handleCombatResult() {
+        guard let quest = questManager.activeQuest else { return }
+
         switch combatManager.state {
         case .victory:
-            questManager.completeCurrentEncounter(victory: true, stats: combatManager.combatStats)
+            // Update quest stats
+            quest.encounters[quest.currentEncounterIndex].isCompleted = true
+            quest.turnsElapsed += combatManager.combatStats.turnsElapsed
+            quest.totalDamageDealt += combatManager.combatStats.totalDamageDealt
+            quest.enemiesKilled += combatManager.combatStats.enemiesKilled
+
+            if quest.hasMoreEncounters {
+                // Rest party and go to next encounter
+                encounterManager.restPartyBetweenEncounters()
+                quest.advanceToNextEncounter()
+                combatManager.resetCombat()
+                // Stay in .encounter state, will show startEncounterView
+            } else {
+                // No more encounters - go directly to victory
+                questManager.questFlowState = .victory
+            }
         case .defeat:
-            questManager.completeCurrentEncounter(victory: false, stats: combatManager.combatStats)
+            questManager.questFlowState = .defeat
         default:
             break
         }

@@ -14,8 +14,12 @@ struct CombatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header — round counter, current unit, phase
-            CombatHeaderView(combatManager: combatManager)
+            // Enemy HP bars at top
+            CombatUnitsBarView(
+                units: combatManager.enemyUnits,
+                title: "Enemies",
+                accentColor: .red
+            )
 
             // Main commentary feed
             CommentaryFeedView(
@@ -24,8 +28,12 @@ struct CombatView: View {
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            // Compact party HP bar
-            CompactPartyBarView(units: combatManager.playerUnits)
+            // Party HP bar at bottom
+            CombatUnitsBarView(
+                units: combatManager.playerUnits,
+                title: "Party",
+                accentColor: .blue
+            )
         }
         .background(Color(red: 0.12, green: 0.1, blue: 0.14))
         .overlay(combatResultOverlay)
@@ -320,16 +328,32 @@ struct CommentaryBoxView: View {
     }
 }
 
-// MARK: - Compact Party HP Bar
+// MARK: - Combat Units HP Bar
 
-/// Horizontal strip showing party member names and HP bars
-struct CompactPartyBarView: View {
+/// Horizontal strip showing unit names and HP bars with title
+struct CombatUnitsBarView: View {
     let units: [CombatUnit]
+    let title: String
+    let accentColor: Color
 
     var body: some View {
         VStack(spacing: 4) {
+            // Section header
+            HStack {
+                Text(title)
+                    .font(.caption.bold())
+                    .foregroundColor(accentColor)
+
+                Spacer()
+
+                Text("\(units.filter { $0.isAlive }.count)/\(units.count) alive")
+                    .font(.caption2)
+                    .foregroundColor(.gray)
+            }
+            .padding(.horizontal, 4)
+
             Divider()
-                .background(Color.gray.opacity(0.5))
+                .background(accentColor.opacity(0.5))
 
             // Arrange in rows of 2
             let rows = stride(from: 0, to: units.count, by: 2).map { i in
@@ -339,7 +363,7 @@ struct CompactPartyBarView: View {
             ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
                 HStack(spacing: 12) {
                     ForEach(row, id: \.id) { unit in
-                        CompactUnitHPView(unit: unit)
+                        CompactUnitHPView(unit: unit, accentColor: accentColor)
                     }
                 }
             }
@@ -353,12 +377,14 @@ struct CompactPartyBarView: View {
 /// Single unit HP display — name + thin bar
 struct CompactUnitHPView: View {
     let unit: CombatUnit
+    var accentColor: Color = .blue
 
     var body: some View {
         HStack(spacing: 6) {
             Text(unit.name)
                 .font(.caption)
                 .foregroundColor(unit.isAlive ? .white : .gray)
+                .strikethrough(!unit.isAlive, color: .gray)
                 .lineLimit(1)
                 .frame(width: 60, alignment: .leading)
 
@@ -376,6 +402,7 @@ struct CompactUnitHPView: View {
             .cornerRadius(4)
         }
         .frame(maxWidth: .infinity)
+        .opacity(unit.isAlive ? 1.0 : 0.5)
     }
 
     private var hpFraction: CGFloat {

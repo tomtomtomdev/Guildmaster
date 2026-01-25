@@ -13,7 +13,6 @@ struct QuestBoardView: View {
     @Binding var currentScreen: GameScreen
 
     @State private var selectedQuest: Quest?
-    @State private var showingQuestDetail = false
 
     var body: some View {
         ZStack {
@@ -51,10 +50,8 @@ struct QuestBoardView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingQuestDetail) {
-            if let quest = selectedQuest {
-                QuestDetailSheet(quest: quest, currentScreen: $currentScreen)
-            }
+        .sheet(item: $selectedQuest) { quest in
+            QuestDetailSheet(quest: quest, currentScreen: $currentScreen)
         }
     }
 
@@ -114,7 +111,6 @@ struct QuestBoardView: View {
             ForEach(quests) { quest in
                 QuestCard(quest: quest) {
                     selectedQuest = quest
-                    showingQuestDetail = true
                 }
             }
         }
