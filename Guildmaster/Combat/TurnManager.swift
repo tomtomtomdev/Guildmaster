@@ -190,14 +190,13 @@ class TurnManager: ObservableObject {
 
     /// End the current unit's turn
     func endTurn() {
-        guard let unit = currentUnit else { return }
+        // Process end-of-turn effects if unit exists
+        if let unit = currentUnit {
+            processEndOfTurn(unit)
+            onTurnEnd?(unit)
+        }
 
-        // Process end-of-turn effects
-        processEndOfTurn(unit)
-
-        onTurnEnd?(unit)
-
-        // Move to next unit
+        // Always advance to next unit, even if current is nil
         currentUnitIndex += 1
         startNextTurn()
     }
