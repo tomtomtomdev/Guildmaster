@@ -14,24 +14,24 @@ struct CombatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Enemy HP bars at top
-            CombatUnitsBarView(
+            // Enemy table at top
+            CombatUnitsTableView(
                 units: combatManager.enemyUnits,
-                title: "Enemies",
+                title: "ENEMIES",
                 accentColor: .red
             )
 
-            // Main commentary feed
+            // Main commentary feed (centered)
             CommentaryFeedView(
                 messages: commentary.messages,
                 logEntries: combatManager.combatLog
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            // Party HP bar at bottom
-            CombatUnitsBarView(
+            // Party table at bottom
+            CombatUnitsTableView(
                 units: combatManager.playerUnits,
-                title: "Party",
+                title: "PARTY",
                 accentColor: .blue
             )
         }
@@ -328,16 +328,16 @@ struct CommentaryBoxView: View {
     }
 }
 
-// MARK: - Combat Units HP Bar
+// MARK: - Combat Units Table
 
-/// Horizontal strip showing unit names and HP bars with title
-struct CombatUnitsBarView: View {
+/// Table showing unit names and HP bars in rows
+struct CombatUnitsTableView: View {
     let units: [CombatUnit]
     let title: String
     let accentColor: Color
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 0) {
             // Section header
             HStack {
                 Text(title)
@@ -346,63 +346,63 @@ struct CombatUnitsBarView: View {
 
                 Spacer()
 
-                Text("\(units.filter { $0.isAlive }.count)/\(units.count) alive")
+                Text("\(units.filter { $0.isAlive }.count)/\(units.count)")
                     .font(.caption2)
                     .foregroundColor(.gray)
             }
-            .padding(.horizontal, 4)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(accentColor.opacity(0.15))
 
-            Divider()
-                .background(accentColor.opacity(0.5))
-
-            // Arrange in rows of 2
-            let rows = stride(from: 0, to: units.count, by: 2).map { i in
-                Array(units[i..<min(i + 2, units.count)])
-            }
-
-            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
-                HStack(spacing: 12) {
-                    ForEach(row, id: \.id) { unit in
-                        CompactUnitHPView(unit: unit, accentColor: accentColor)
-                    }
-                }
+            // Unit rows
+            ForEach(units, id: \.id) { unit in
+                UnitRowView(unit: unit, accentColor: accentColor)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color.black.opacity(0.8))
+        .background(Color.black.opacity(0.6))
     }
 }
 
-/// Single unit HP display — name + thin bar
-struct CompactUnitHPView: View {
+/// Single unit row with name and health bar
+struct UnitRowView: View {
     let unit: CombatUnit
-    var accentColor: Color = .blue
+    let accentColor: Color
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 10) {
+            // Unit name
             Text(unit.name)
-                .font(.caption)
+                .font(.system(size: 13, weight: unit.isAlive ? .medium : .regular))
                 .foregroundColor(unit.isAlive ? .white : .gray)
                 .strikethrough(!unit.isAlive, color: .gray)
                 .lineLimit(1)
-                .frame(width: 60, alignment: .leading)
+                .frame(width: 80, alignment: .leading)
 
+            // HP bar
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
-                    Rectangle()
+                    // Background
+                    RoundedRectangle(cornerRadius: 3)
                         .fill(Color.gray.opacity(0.3))
 
-                    Rectangle()
+                    // Fill
+                    RoundedRectangle(cornerRadius: 3)
                         .fill(hpColor)
                         .frame(width: geometry.size.width * hpFraction)
                 }
             }
-            .frame(height: 8)
-            .cornerRadius(4)
+            .frame(height: 10)
+
+            // HP text
+            Text("\(unit.currentHP)/\(unit.maxHP)")
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .foregroundColor(unit.isAlive ? .white.opacity(0.8) : .gray)
+                .frame(width: 55, alignment: .trailing)
         }
-        .frame(maxWidth: .infinity)
-        .opacity(unit.isAlive ? 1.0 : 0.5)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 5)
+        .background(unit.isAlive ? Color.clear : Color.black.opacity(0.3))
+        .opacity(unit.isAlive ? 1.0 : 0.6)
     }
 
     private var hpFraction: CGFloat {
