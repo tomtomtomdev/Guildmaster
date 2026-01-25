@@ -122,12 +122,58 @@ struct QuestFlowView: View {
                 // Need to start combat
                 startEncounterView
             } else {
-                // Combat finished - handle result
-                EmptyView()
-                    .onAppear {
-                        handleCombatResult()
-                    }
+                // Combat finished - show result with continue button
+                combatResultTransitionView
             }
+        }
+    }
+
+    private var combatResultTransitionView: some View {
+        ZStack {
+            Color.black.opacity(0.8)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text(combatManager.state == .victory ? "VICTORY!" : "DEFEAT")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(combatManager.state == .victory ? .yellow : .red)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Enemies Defeated")
+                            .foregroundColor(.gray)
+                        Spacer()
+                        Text("\(combatManager.combatStats.enemiesKilled)")
+                            .foregroundColor(.white)
+                            .fontWeight(.semibold)
+                    }
+                    HStack {
+                        Text("Damage Dealt")
+                            .foregroundColor(.gray)
+                        Spacer()
+                        Text("\(combatManager.combatStats.totalDamageDealt)")
+                            .foregroundColor(.white)
+                            .fontWeight(.semibold)
+                    }
+                }
+                .padding()
+                .background(Color.white.opacity(0.1))
+                .cornerRadius(12)
+
+                Button(action: {
+                    handleCombatResult()
+                }) {
+                    Text("Continue")
+                        .font(.headline)
+                        .padding(.horizontal, 40)
+                        .padding(.vertical, 12)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                }
+            }
+            .padding(40)
         }
     }
 

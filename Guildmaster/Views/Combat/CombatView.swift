@@ -92,52 +92,196 @@ struct CombatHeaderView: View {
 
 // MARK: - Commentary Feed
 
-/// Full-screen scrolling commentary feed
+/// Single-row boxed commentary display with timed message progression
 struct CommentaryFeedView: View {
     let messages: [CommentaryMessage]
     let logEntries: [CombatLogEntry]
 
+    @State private var displayedEntry: CombatLogEntry?
+    @State private var isBlinking: Bool = false
+    @State private var pendingEntries: [CombatLogEntry] = []
+    @State private var isProcessing: Bool = false
+
+    private var isMajorEvent: Bool {
+        guard let entry = displayedEntry else { return false }
+        return entry.type == .death || entry.type == .critical
+    }
+
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 6) {
-                    ForEach(logEntries) { entry in
-                        CommentaryEntryView(entry: entry)
-                            .id(entry.id)
-                    }
-                }
+        VStack {
+            Spacer()
+
+            if let entry = displayedEntry {
+                CommentaryBoxView(entry: entry, isBlinking: isBlinking && isMajorEvent)
+                    .padding(.horizontal, 16)
+                    .id(entry.id)
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            } else {
+                CommentaryBoxView(
+                    entry: CombatLogEntry(message: "Battle begins...", type: .system),
+                    isBlinking: false
+                )
                 .padding(.horizontal, 16)
-                .padding(.vertical, 12)
             }
-            .onChange(of: logEntries.count) { _ in
-                if let lastEntry = logEntries.last {
-                    withAnimation(.easeOut(duration: 0.3)) {
-                        proxy.scrollTo(lastEntry.id, anchor: .bottom)
+
+            Spacer()
+
+            // Progress indicator
+            if !logEntries.isEmpty {
+                let currentIndex = logEntries.firstIndex(where: { $0.id == displayedEntry?.id }) ?? 0
+                Text("\(currentIndex + 1) / \(logEntries.count)")
+                    .font(.caption2)
+                    .foregroundColor(.gray)
+                    .padding(.bottom, 8)
+            }
+        }
+        .onChange(of: logEntries.count) { _ in
+            // Find new entries not yet shown
+            let displayedId = displayedEntry?.id
+            var foundDisplayed = displayedId == nil
+
+            for entry in logEntries {
+                if foundDisplayed {
+                    if !pendingEntries.contains(where: { $0.id == entry.id }) {
+                        pendingEntries.append(entry)
                     }
+                } else if entry.id == displayedId {
+                    foundDisplayed = true
+                }
+            }
+
+            processNextEntry()
+        }
+        .onAppear {
+            // Show the first entry immediately
+            if let first = logEntries.first {
+                displayedEntry = first
+                triggerBlinkIfNeeded(for: first)
+
+                // Queue remaining entries
+                if logEntries.count > 1 {
+                    pendingEntries = Array(logEntries.dropFirst())
+                    processNextEntry()
                 }
             }
         }
     }
+
+    private func processNextEntry() {
+        guard !isProcessing, !pendingEntries.isEmpty else { return }
+
+        isProcessing = true
+
+        // Wait 1 second before showing next entry
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            guard !pendingEntries.isEmpty else {
+                isProcessing = false
+                return
+            }
+
+            let nextEntry = pendingEntries.removeFirst()
+
+            withAnimation(.easeInOut(duration: 0.2)) {
+                displayedEntry = nextEntry
+            }
+
+            triggerBlinkIfNeeded(for: nextEntry)
+            isProcessing = false
+
+            // Continue processing if more entries
+            if !pendingEntries.isEmpty {
+                processNextEntry()
+            }
+        }
+    }
+
+    private func triggerBlinkIfNeeded(for entry: CombatLogEntry) {
+        if entry.type == .death || entry.type == .critical {
+            isBlinking = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                isBlinking = false
+            }
+        } else {
+            isBlinking = false
+        }
+    }
 }
 
-/// Individual commentary entry with color-coding and styling
-struct CommentaryEntryView: View {
+/// Boxed commentary entry with optional blinking for major events
+struct CommentaryBoxView: View {
     let entry: CombatLogEntry
+    let isBlinking: Bool
+
+    @State private var blinkVisible: Bool = true
+
+    private var isMajorEvent: Bool {
+        entry.type == .death || entry.type == .critical
+    }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            // Event type indicator
-            Circle()
-                .fill(colorFor(entry.type))
-                .frame(width: 6, height: 6)
-                .padding(.top, 7)
+        HStack(spacing: 8) {
+            // Exclamation mark for major events
+            if isMajorEvent {
+                Text("!")
+                    .font(.title2.bold())
+                    .foregroundColor(colorFor(entry.type))
+                    .opacity(isBlinking ? (blinkVisible ? 1.0 : 0.3) : 1.0)
+            }
 
             Text(entry.message)
                 .font(fontFor(entry.type))
                 .foregroundColor(colorFor(entry.type))
                 .fontWeight(weightFor(entry.type))
+                .multilineTextAlignment(.center)
+                .opacity(isBlinking ? (blinkVisible ? 1.0 : 0.3) : 1.0)
+
+            if isMajorEvent {
+                Text("!")
+                    .font(.title2.bold())
+                    .foregroundColor(colorFor(entry.type))
+                    .opacity(isBlinking ? (blinkVisible ? 1.0 : 0.3) : 1.0)
+            }
         }
-        .padding(.vertical, 2)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.black.opacity(0.6))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(borderColor, lineWidth: isMajorEvent ? 3 : 2)
+        )
+        .onChange(of: isBlinking) { newValue in
+            if newValue {
+                startBlinkTimer()
+            }
+        }
+        .onAppear {
+            if isBlinking {
+                startBlinkTimer()
+            }
+        }
+    }
+
+    private var borderColor: Color {
+        if isMajorEvent {
+            return colorFor(entry.type)
+        }
+        return Color.gray.opacity(0.5)
+    }
+
+    private func startBlinkTimer() {
+        // Fast blink animation
+        Timer.scheduledTimer(withTimeInterval: 0.15, repeats: true) { timer in
+            if !isBlinking {
+                timer.invalidate()
+                blinkVisible = true
+                return
+            }
+            blinkVisible.toggle()
+        }
     }
 
     private func colorFor(_ type: CombatLogType) -> Color {
@@ -253,6 +397,7 @@ struct CompactUnitHPView: View {
 struct CombatResultView: View {
     let isVictory: Bool
     let stats: CombatStatistics
+    var onContinue: (() -> Void)? = nil
 
     var body: some View {
         ZStack {
@@ -280,7 +425,14 @@ struct CombatResultView: View {
                 .background(Color.white.opacity(0.1))
                 .cornerRadius(12)
 
-                Button(action: {}) {
+                Button(action: {
+                    if let onContinue = onContinue {
+                        onContinue()
+                    } else {
+                        // Default: reset combat state so quest flow can continue
+                        CombatManager.shared.resetCombat()
+                    }
+                }) {
                     Text("Continue")
                         .font(.headline)
                         .padding(.horizontal, 40)

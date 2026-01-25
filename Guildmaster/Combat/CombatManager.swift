@@ -204,6 +204,19 @@ class CombatManager: ObservableObject {
         }
     }
 
+    /// Reset combat state to allow new combat or return to quest flow
+    func resetCombat() {
+        state = .notInCombat
+        combatLog.removeAll()
+        playerUnits.removeAll()
+        enemyUnits.removeAll()
+        combatStats = CombatStatistics()
+        selectedAbility = nil
+        targetingMode = .none
+        validTargets.removeAll()
+        CombatCommentary.shared.clear()
+    }
+
     // MARK: - Player Actions
 
     /// Move the current unit to a hex
